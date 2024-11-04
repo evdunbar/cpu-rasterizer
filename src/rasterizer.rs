@@ -1,3 +1,6 @@
+use std::ops::Sub;
+
+#[derive(Debug, Copy, Clone)]
 pub struct Color {
     r: u8,
     g: u8,
@@ -5,6 +8,34 @@ pub struct Color {
     a: u8,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub struct Vec3 {
+    x: f32,
+    y: f32,
+    z: f32,
+}
+
+impl Vec3 {
+    pub fn as_vector(&self) -> Vec4 {
+        Vec4 {
+            x: self.x,
+            y: self.y,
+            z: self.z,
+            w: 0.0,
+        }
+    }
+
+    pub fn as_point(&self) -> Vec4 {
+        Vec4 {
+            x: self.x,
+            y: self.y,
+            z: self.z,
+            w: 1.0,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct Vec4 {
     x: f32,
     y: f32,
@@ -25,8 +56,38 @@ impl Vec4 {
             a: (self.w * 255.0).clamp(0.0, 255.0) as u8,
         }
     }
+
+    pub fn det_2d(&self, other: &Vec4) -> f32 {
+        self.x * other.y - self.y * other.x
+    }
 }
 
+impl Sub for Vec4 {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self::Output {
+        Self {
+            x: self.x - other.x,
+            y: self.y - other.y,
+            z: self.z - other.z,
+            w: self.w - other.w,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Mesh<'a> {
+    positions: &'a mut [Vec3],
+    vertex_count: u32,
+    color: Vec4,
+}
+
+#[derive(Debug)]
+pub struct DrawCommand<'a> {
+    mesh: Mesh<'a>,
+}
+
+#[derive(Debug)]
 pub struct ImageView {
     pixels: *mut [Color],
     width: u32,
@@ -55,5 +116,9 @@ impl ImageView {
         let pixels_u32 =
             unsafe { std::slice::from_raw_parts_mut(self.pixels as *mut Color as *mut u32, len) };
         pixels_u32.fill(rgba_u32);
+    }
+
+    pub fn at(&self, x: usize, y: usize) -> *mut Color {
+        unsafe { self.pixels.add(x + y * self.width as usize) as *mut Color }
     }
 }

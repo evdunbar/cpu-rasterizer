@@ -22,13 +22,11 @@ fn main() {
         .allow_highdpi()
         .build()
         .unwrap();
-
     let mut maybe_draw_surface: Option<Surface> = None;
+    let mut event_pump = sdl_context.event_pump().unwrap();
 
     let mut mouse_x = 0;
     let mut mouse_y = 0;
-
-    let mut event_pump = sdl_context.event_pump().unwrap();
 
     let mut last_frame_start = Instant::now();
 

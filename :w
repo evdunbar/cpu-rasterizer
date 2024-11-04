@@ -1,11 +1,4 @@
-use std::ops::{Mul, Sub};
-
-#[derive(Debug, Copy, Clone)]
-pub enum CullMode {
-    None,
-    Counterclockwise,
-    Clockwise,
-}
+use std::ops::Sub;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Color {
@@ -86,50 +79,6 @@ impl Sub for Vec4 {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub struct Mat4x4 {
-    pub values: [f32; 16],
-}
-
-impl Mat4x4 {
-    pub fn new(values: [f32; 16]) -> Mat4x4 {
-        Mat4x4 { values }
-    }
-
-    pub fn identity() -> Mat4x4 {
-        Mat4x4 {
-            values: [
-                1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-            ],
-        }
-    }
-}
-
-impl Mul<Vec4> for Mat4x4 {
-    type Output = Vec4;
-
-    fn mul(self, rhs: Vec4) -> Self::Output {
-        Self::Output {
-            x: self.values[0] * rhs.x
-                + self.values[1] * rhs.y
-                + self.values[2] * rhs.z
-                + self.values[3] * rhs.w,
-            y: self.values[4] * rhs.x
-                + self.values[5] * rhs.y
-                + self.values[6] * rhs.z
-                + self.values[7] * rhs.w,
-            z: self.values[8] * rhs.x
-                + self.values[9] * rhs.y
-                + self.values[10] * rhs.z
-                + self.values[11] * rhs.w,
-            w: self.values[12] * rhs.x
-                + self.values[13] * rhs.y
-                + self.values[14] * rhs.z
-                + self.values[15] * rhs.w,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct Mesh<'a> {
     pub positions: &'a mut [Vec3],
@@ -139,8 +88,6 @@ pub struct Mesh<'a> {
 #[derive(Debug)]
 pub struct DrawCommand<'a> {
     pub mesh: Mesh<'a>,
-    pub cull_mode: CullMode,
-    pub transform: Mat4x4,
 }
 
 #[derive(Debug)]
@@ -183,40 +130,18 @@ impl ImageView<'_> {
 
     pub fn draw(&mut self, command: &DrawCommand) {
         for vertices in command.mesh.positions.chunks_exact(3) {
-            let (mut v0, mut v1, v2) = (
-                command.transform * vertices[0].as_point(),
-                command.transform * vertices[1].as_point(),
-                command.transform * vertices[2].as_point(),
+            let (v0, v1, v2) = (
+                vertices[0].as_point(),
+                vertices[1].as_point(),
+                vertices[2].as_point(),
             );
-
-            let mut det_012 = (v1 - v0).det_2d(&(v2 - v0));
-            let counterclockwise = det_012 < 0.0;
-
-            match command.cull_mode {
-                CullMode::None => {}
-                CullMode::Clockwise => {
-                    if !counterclockwise {
-                        continue;
-                    }
-                }
-                CullMode::Counterclockwise => {
-                    if counterclockwise {
-                        continue;
-                    }
-                }
-            }
-
-            if counterclockwise {
-                std::mem::swap(&mut v0, &mut v1);
-                det_012 = -det_012;
-            }
 
             let xmin = 0.max(
                 (v0.x.floor() as usize)
                     .min(v1.x.floor() as usize)
                     .min(v2.x.floor() as usize),
             );
-            let xmax = (self.width as usize).min(
+            let xmax = ((self.width - 1) as usize).min(
                 (v0.x.ceil() as usize)
                     .max(v1.x.ceil() as usize)
                     .max(v2.x.ceil() as usize),
@@ -226,7 +151,7 @@ impl ImageView<'_> {
                     .min(v1.y.floor() as usize)
                     .min(v2.y.floor() as usize),
             );
-            let ymax = (self.height as usize).min(
+            let ymax = ((self.width - 1) as usize).min(
                 (v0.y.ceil() as usize)
                     .max(v1.y.ceil() as usize)
                     .max(v2.y.ceil() as usize),
@@ -246,7 +171,7 @@ impl ImageView<'_> {
                     let det_20_p = (v0 - v2).det_2d(&(p - v2));
 
                     if det_01_p >= 0.0 && det_12_p >= 0.0 && det_20_p >= 0.0 {
-                        *self.at(x, y) = command.mesh.color.to_color();
+                        *self.at(x as usize, y as usize) = command.mesh.color.to_color();
                     }
                 }
             }

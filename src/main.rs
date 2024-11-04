@@ -68,6 +68,44 @@ fn main() {
             );
             color_buffer.clear(Vec4::new(0.8, 0.9, 1.0, 1.0));
 
+            let mut positions = [
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(100.0, 0.0, 0.0),
+                Vec3::new(0.0, 100.0, 0.0),
+            ];
+            for i in 0..100 {
+                color_buffer.draw(&DrawCommand {
+                    mesh: Mesh {
+                        positions: &mut positions,
+                        color: Vec4::new(
+                            (i % 3 == 0) as i32 as f32,
+                            (i % 3 == 1) as i32 as f32,
+                            (i % 3 == 2) as i32 as f32,
+                            1.0,
+                        ),
+                    },
+                    cull_mode: CullMode::None,
+                    transform: Mat4x4::new([
+                        1.0,
+                        0.0,
+                        0.0,
+                        mouse_x as f32 + 100.0 * (i % 10) as f32,
+                        0.0,
+                        1.0,
+                        0.0,
+                        mouse_y as f32 + 100.0 * (i / 10) as f32,
+                        0.0,
+                        0.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1.0,
+                    ]),
+                });
+            }
+
             let rect = draw_surface.rect();
             let window_surface = &mut window.surface(&event_pump).unwrap();
             let _ = draw_surface.blit(rect, window_surface, rect);
